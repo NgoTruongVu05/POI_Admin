@@ -42,9 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 layout_start('settings', 'Cài đặt | POI Admin');
 ?>
 
-<div class="text-center">
-    <h1 class="text-2xl font-semibold">Cài đặt tài khoản</h1>
-    <p class="text-sm text-slate-500 mt-1">Quản lý thông tin bảo mật của bạn.</p>
+<div class="flex items-start justify-between gap-6">
+    <div>
+        <h1 class="text-2xl font-semibold">Đổi mật khẩu</h1>
+        <p class="text-sm text-slate-500 mt-1">Quản lý thông tin bảo mật của bạn.</p>
+    </div>
 </div>
 
 <div class="mt-8 flex justify-center">

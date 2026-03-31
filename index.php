@@ -15,7 +15,7 @@ $recentTours = [];
 
 try {
 	$poiTotal = (int)$conn->query('SELECT COUNT(*) FROM pois')->fetchColumn();
-	$recentPoisStmt = $conn->query('SELECT id, name, category FROM pois ORDER BY id DESC LIMIT 2');
+	$recentPoisStmt = $conn->query('SELECT p.id, p.name, p.categoryId, c.name AS categoryName FROM pois p LEFT JOIN categories c ON c.id = p.categoryId ORDER BY p.id DESC LIMIT 2');
 	$recentPois = $recentPoisStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
 	$poiTotal = 0;
@@ -92,7 +92,9 @@ layout_start('dashboard', 'Dashboard | POI Admin');
 				<div class="space-y-3">
 					<?php foreach ($recentPois as $poi) :
 						$name = (string)($poi['name'] ?? '');
-						$category = (string)($poi['category'] ?? '');
+						$categoryId = (string)($poi['categoryId'] ?? '');
+						$categoryName = (string)($poi['categoryName'] ?? '');
+						$categoryLabel = $categoryName !== '' ? $categoryName : $categoryId;
 					?>
 						<div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
 							<div class="flex items-center gap-3 min-w-0">
@@ -104,9 +106,9 @@ layout_start('dashboard', 'Dashboard | POI Admin');
 									<div class="text-xs text-slate-500 truncate">POI mới</div>
 								</div>
 							</div>
-							<?php if ($category !== '') : ?>
+							<?php if ($categoryLabel !== '') : ?>
 								<span class="ml-4 shrink-0 inline-flex items-center rounded-full bg-white border border-slate-200 text-slate-600 px-2.5 py-1 text-[10px] font-bold uppercase">
-									<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>
+									<?php echo htmlspecialchars($categoryLabel, ENT_QUOTES, 'UTF-8'); ?>
 								</span>
 							<?php endif; ?>
 						</div>

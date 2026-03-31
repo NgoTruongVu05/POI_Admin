@@ -46,7 +46,6 @@ function layout_start(string $activePage, string $title = 'POI Admin'): void
         ['href' => app_url('index.php'), 'key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'bi-grid'],
         ['href' => app_url('pages/pois.php'), 'key' => 'pois', 'label' => 'Quản lý POIs', 'icon' => 'bi-geo-alt'],
         ['href' => app_url('pages/tours.php'), 'key' => 'tours', 'label' => 'Quản lý Tours', 'icon' => 'bi-diagram-3'],
-        ['href' => app_url('pages/settings.php'), 'key' => 'settings', 'label' => 'Cài đặt', 'icon' => 'bi-gear'],
     ];
 
     echo "<!DOCTYPE html>\n";
@@ -60,6 +59,9 @@ function layout_start(string $activePage, string $title = 'POI Admin'): void
     echo "</head>\n";
 
     echo "<body class=\"bg-slate-50 text-slate-900\">\n";
+    echo "  <a href=\"" . htmlspecialchars(app_url('pages/logout.php'), ENT_QUOTES, 'UTF-8') . "\" class=\"fixed bottom-6 left-6 z-40 inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 text-slate-700 px-4 py-2 text-sm font-semibold hover:bg-slate-50 transition\">\n";
+    echo "    <i class=\"bi bi-box-arrow-right\"></i><span>Đăng xuất</span>\n";
+    echo "  </a>\n";
     echo "  <div class=\"min-h-screen flex\">\n";
 
     // Sidebar
@@ -83,11 +85,6 @@ function layout_start(string $activePage, string $title = 'POI Admin'): void
     }
     echo "      </nav>\n";
 
-    echo "      <div class=\"mt-auto px-4 py-4\">\n";
-    echo "        <a href=\"" . htmlspecialchars(app_url('pages/logout.php'), ENT_QUOTES, 'UTF-8') . "\" class=\"flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition\">\n";
-    echo "          <i class=\"bi bi-box-arrow-right\"></i><span>Đăng xuất</span>\n";
-    echo "        </a>\n";
-    echo "      </div>\n";
     echo "    </aside>\n";
 
     // Main
@@ -95,13 +92,17 @@ function layout_start(string $activePage, string $title = 'POI Admin'): void
 
     // Topbar
     echo "      <header class=\"h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8\">\n";
-    echo "        <div class=\"flex items-center gap-3\">\n";
-    echo "          <button type=\"button\" class=\"w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition flex items-center justify-center\" aria-label=\"Close\">\n";
-    echo "            <i class=\"bi bi-x-lg\"></i>\n";
-    echo "          </button>\n";
-    echo "        </div>\n";
+    echo "        <div></div>\n";
 
     echo "        <div class=\"flex items-center gap-3\">\n";
+    $settingsBase = 'inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold transition';
+    $settingsCls = $activePage === 'settings'
+        ? $settingsBase . ' bg-blue-50 text-blue-600 border-blue-100'
+        : $settingsBase . ' text-slate-600 hover:bg-slate-50';
+
+    echo "          <a href=\"" . htmlspecialchars(app_url('pages/settings.php'), ENT_QUOTES, 'UTF-8') . "\" class=\"" . $settingsCls . "\" aria-label=\"Đổi mật khẩu\" title=\"Đổi mật khẩu\">\n";
+    echo "            <i class=\"bi bi-shield-lock\"></i><span>Đổi mật khẩu</span>\n";
+    echo "          </a>\n";
     echo "          <div class=\"text-sm text-slate-600\">" . $usernameEsc . "</div>\n";
     echo "          <div class=\"w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold\">" . $avatarLetterEsc . "</div>\n";
     echo "        </div>\n";

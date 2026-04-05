@@ -46,6 +46,7 @@ function layout_start(string $activePage, string $title = 'POI Admin'): void
         ['href' => app_url('index.php'), 'key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'bi-grid'],
         ['href' => app_url('pages/pois.php'), 'key' => 'pois', 'label' => 'Quản lý POIs', 'icon' => 'bi-geo-alt'],
         ['href' => app_url('pages/tours.php'), 'key' => 'tours', 'label' => 'Quản lý Tours', 'icon' => 'bi-diagram-3'],
+        ['href' => app_url('pages/languages.php'), 'key' => 'languages', 'label' => 'Quản lý Ngôn ngữ', 'icon' => 'bi-translate'],
     ];
 
     echo "<!DOCTYPE html>\n";

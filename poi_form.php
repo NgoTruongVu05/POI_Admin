@@ -214,6 +214,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (empty($errors)) {
+                    try {
+                        $stmtTranslation = $conn->prepare('INSERT INTO poitranslations (poiId, langCode, description) VALUES (:poiId, :langCode, :description) ON DUPLICATE KEY UPDATE description = VALUES(description)');
+                        $stmtTranslation->execute([
+                            ':poiId' => $values['id'],
+                            ':langCode' => 'vi',
+                            ':description' => $values['description'] === '' ? null : $values['description'],
+                        ]);
+                    } catch (Throwable $inner) {
+                        // Nếu đồng bộ dịch thất bại, vẫn giữ POI chính.
+                    }
+
                     header('Location: ' . app_url('pages/pois.php'));
                     exit();
                 }

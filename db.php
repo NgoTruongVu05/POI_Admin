@@ -2,7 +2,7 @@
 $host = "localhost";
 $dbname = "POI_Database";
 $username = "root"; // Mặc định của XAMPP
-$password = "";     // Mặc định của XAMPP thường để trống
+$password = "123456";     // Mặc định của XAMPP thường để trống
 
 try {
     $conn = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);

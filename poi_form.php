@@ -40,7 +40,6 @@ $values = [
     'id' => '',
     'name' => '',
     'description' => '',
-    'categoryId' => '',
     'lat' => '',
     'lng' => '',
 ];
@@ -60,41 +59,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $isEdit = $mode === 'edit';
 
-$categoryOptions = [];
-try {
-    $stmt = $conn->query("SELECT id, name FROM categories ORDER BY name ASC");
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($rows as $row) {
-        $id = trim((string)($row['id'] ?? ''));
-        $name = trim((string)($row['name'] ?? ''));
-        if ($id !== '' && $name !== '' && str_len($id) <= 20) {
-            $categoryOptions[$id] = $name;
-        }
-    }
-} catch (Throwable $e) {
-    $categoryOptions = [];
-}
-
-if (empty($categoryOptions)) {
-    $categoryOptions = [
-        'main' => 'Điểm tham quan',
-        'boat' => 'Bến tàu/thuyền',
-        'wc' => 'Nhà vệ sinh',
-    ];
-}
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $isEdit) {
     $editId = trim((string)($_GET['id'] ?? ''));
     if ($editId !== '') {
         try {
-            $stmt = $conn->prepare('SELECT id, name, description, categoryId, lat, lng FROM pois WHERE id = :id LIMIT 1');
+            $stmt = $conn->prepare('SELECT id, name, description, lat, lng FROM pois WHERE id = :id LIMIT 1');
             $stmt->execute([':id' => $editId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (is_array($row) && (string)($row['id'] ?? '') !== '') {
                 $values['id'] = (string)$row['id'];
                 $values['name'] = (string)($row['name'] ?? '');
                 $values['description'] = (string)($row['description'] ?? '');
-                $values['categoryId'] = (string)($row['categoryId'] ?? '');
                 $values['lat'] = (string)($row['lat'] ?? '');
                 $values['lng'] = (string)($row['lng'] ?? '');
             } else {
@@ -131,7 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $values['id'] = trim((string)($_POST['id'] ?? ''));
     $values['name'] = trim((string)($_POST['name'] ?? ''));
     $values['description'] = trim((string)($_POST['description'] ?? ''));
-    $values['categoryId'] = trim((string)($_POST['categoryId'] ?? ''));
     $values['lat'] = trim((string)($_POST['lat'] ?? ''));
     $values['lng'] = trim((string)($_POST['lng'] ?? ''));
 
@@ -151,14 +125,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Vui lòng nhập Tên POI.';
     } elseif (str_len($values['name']) > 200) {
         $errors[] = 'Tên POI tối đa 200 ký tự.';
-    }
-
-    if ($values['categoryId'] === '') {
-        $errors[] = 'Vui lòng chọn Category.';
-    } elseif (str_len($values['categoryId']) > 20) {
-        $errors[] = 'Category tối đa 20 ký tự.';
-    } elseif (!array_key_exists($values['categoryId'], $categoryOptions)) {
-        $errors[] = 'Category không hợp lệ.';
     }
 
     if ($values['lat'] === '' || !is_numeric($values['lat'])) {
@@ -183,12 +149,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors)) {
             try {
                 if ($mode === 'edit') {
-                    $stmt = $conn->prepare('UPDATE pois SET name = :name, description = :description, categoryId = :categoryId, lat = :lat, lng = :lng WHERE id = :id');
+                    $stmt = $conn->prepare('UPDATE pois SET name = :name, description = :description, lat = :lat, lng = :lng WHERE id = :id');
                     $stmt->execute([
                         ':id' => $values['id'],
                         ':name' => $values['name'],
                         ':description' => $values['description'] === '' ? null : $values['description'],
-                        ':categoryId' => $values['categoryId'],
                         ':lat' => $lat,
                         ':lng' => $lng,
                     ]);
@@ -202,12 +167,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 } else {
-                    $stmt = $conn->prepare('INSERT INTO pois (id, name, description, categoryId, lat, lng) VALUES (:id, :name, :description, :categoryId, :lat, :lng)');
+                    $stmt = $conn->prepare('INSERT INTO pois (id, name, description, lat, lng) VALUES (:id, :name, :description, :lat, :lng)');
                     $stmt->execute([
                         ':id' => $values['id'],
                         ':name' => $values['name'],
                         ':description' => $values['description'] === '' ? null : $values['description'],
-                        ':categoryId' => $values['categoryId'],
                         ':lat' => $lat,
                         ':lng' => $lng,
                     ]);
@@ -290,23 +254,6 @@ layout_start('pois', $pageTitle);
                 <div class="mt-1 text-xs text-slate-500">Ví dụ: <span class="font-mono">poi_04</span> (không dấu cách).</div>
             </label>
         <?php endif; ?>
-
-        <label class="block">
-            <div class="text-sm font-semibold text-slate-700">Thể Loại</div>
-            <select name="categoryId" class="mt-2 w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required>
-                <option value="">-- Chọn thể loại --</option>
-                <?php foreach ($categoryOptions as $catId => $catName) :
-                    $catIdStr = (string)$catId;
-                    $catNameStr = (string)$catName;
-                    $selected = $values['categoryId'] !== '' && $values['categoryId'] === $catIdStr;
-                ?>
-                    <option value="<?php echo htmlspecialchars($catIdStr, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selected ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($catNameStr, ENT_QUOTES, 'UTF-8'); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <div class="mt-1 text-xs text-slate-500">Chọn từ danh sách thể loại đang có trong hệ thống.</div>
-        </label>
 
         <label class="block md:col-span-2">
             <div class="text-sm font-semibold text-slate-700">Tên POI <span class="text-rose-600">*</span></div>

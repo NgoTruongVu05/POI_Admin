@@ -50,10 +50,8 @@ function handle_pois(string $method, array $segments): void
     if ($method === 'GET') {
         if ($id === null) {
             $q = api_string($_GET['q'] ?? '');
-            $categoryId = api_string($_GET['categoryId'] ?? '');
 
-            $sql = 'SELECT p.id, p.name, p.description, p.categoryId, p.lat, p.lng, c.name AS categoryName, c.color AS categoryColor '
-                . 'FROM pois p LEFT JOIN categories c ON c.id = p.categoryId';
+            $sql = 'SELECT p.id, p.name, p.description, p.lat, p.lng FROM pois p';
 
             $where = [];
             $params = [];
@@ -61,10 +59,6 @@ function handle_pois(string $method, array $segments): void
             if ($q !== '') {
                 $where[] = '(p.id LIKE :q OR p.name LIKE :q OR p.description LIKE :q)';
                 $params[':q'] = '%' . $q . '%';
-            }
-            if ($categoryId !== '') {
-                $where[] = 'p.categoryId = :categoryId';
-                $params[':categoryId'] = $categoryId;
             }
 
             if ($where) {
@@ -79,8 +73,7 @@ function handle_pois(string $method, array $segments): void
             api_ok($rows);
         }
 
-        $stmt = $conn->prepare('SELECT p.id, p.name, p.description, p.categoryId, p.lat, p.lng, c.name AS categoryName, c.color AS categoryColor '
-            . 'FROM pois p LEFT JOIN categories c ON c.id = p.categoryId WHERE p.id = :id');
+        $stmt = $conn->prepare('SELECT id, name, description, lat, lng FROM pois WHERE id = :id');
         $stmt->execute([':id' => (string)$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
@@ -103,7 +96,6 @@ function handle_pois(string $method, array $segments): void
         $poiId = api_string($body['id'] ?? '');
         $name = api_string($body['name'] ?? '');
         $description = api_nullable_string($body['description'] ?? null);
-        $categoryId = api_nullable_string($body['categoryId'] ?? null);
         $lat = api_float($body['lat'] ?? null);
         $lng = api_float($body['lng'] ?? null);
 
@@ -113,12 +105,11 @@ function handle_pois(string $method, array $segments): void
 
         api_validate_lat_lng($lat, $lng);
 
-        $stmt = $conn->prepare('INSERT INTO pois (id, name, description, categoryId, lat, lng) VALUES (:id, :name, :description, :categoryId, :lat, :lng)');
+        $stmt = $conn->prepare('INSERT INTO pois (id, name, description, lat, lng) VALUES (:id, :name, :description, :lat, :lng)');
         $stmt->execute([
             ':id' => $poiId,
             ':name' => $name,
             ':description' => $description,
-            ':categoryId' => $categoryId,
             ':lat' => $lat,
             ':lng' => $lng,
         ]);
@@ -138,7 +129,6 @@ function handle_pois(string $method, array $segments): void
 
         $name = api_string($body['name'] ?? '');
         $description = api_nullable_string($body['description'] ?? null);
-        $categoryId = api_nullable_string($body['categoryId'] ?? null);
         $lat = api_float($body['lat'] ?? null);
         $lng = api_float($body['lng'] ?? null);
 
@@ -148,12 +138,11 @@ function handle_pois(string $method, array $segments): void
 
         api_validate_lat_lng($lat, $lng);
 
-        $stmt = $conn->prepare('UPDATE pois SET name = :name, description = :description, categoryId = :categoryId, lat = :lat, lng = :lng WHERE id = :id');
+        $stmt = $conn->prepare('UPDATE pois SET name = :name, description = :description, lat = :lat, lng = :lng WHERE id = :id');
         $stmt->execute([
             ':id' => (string)$id,
             ':name' => $name,
             ':description' => $description,
-            ':categoryId' => $categoryId,
             ':lat' => $lat,
             ':lng' => $lng,
         ]);

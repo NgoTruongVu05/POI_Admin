@@ -17,7 +17,7 @@ if ($id === '') {
     $error = 'Thiếu POI ID.';
 } else {
     try {
-        $stmt = $conn->prepare('SELECT p.id, p.name, p.description, p.lat, p.lng, p.categoryId, c.name AS categoryName FROM pois p LEFT JOIN categories c ON c.id = p.categoryId WHERE p.id = :id LIMIT 1');
+        $stmt = $conn->prepare('SELECT id, name, description, lat, lng FROM pois WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (is_array($row) && (string)($row['id'] ?? '') !== '') {
@@ -61,9 +61,6 @@ layout_start('pois', 'Chi tiết POI | POI Admin');
 <?php else :
     $name = (string)($poi['name'] ?? '');
     $desc = (string)($poi['description'] ?? '');
-    $categoryId = (string)($poi['categoryId'] ?? '');
-    $categoryName = (string)($poi['categoryName'] ?? '');
-    $categoryLabel = $categoryName !== '' ? $categoryName : $categoryId;
     $lat = (float)($poi['lat'] ?? 0);
     $lng = (float)($poi['lng'] ?? 0);
 ?>
@@ -75,17 +72,6 @@ layout_start('pois', 'Chi tiết POI | POI Admin');
 
                 <div class="mt-5 text-sm text-slate-500">Tên POI</div>
                 <div class="mt-1 font-semibold"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></div>
-
-                <div class="mt-5 text-sm text-slate-500">Thể loại</div>
-                <div class="mt-1">
-                    <?php if ($categoryLabel !== '') : ?>
-                        <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2.5 py-1 text-xs font-semibold">
-                            <?php echo htmlspecialchars($categoryLabel, ENT_QUOTES, 'UTF-8'); ?>
-                        </span>
-                    <?php else : ?>
-                        <span class="text-slate-400 text-sm">(Chưa có)</span>
-                    <?php endif; ?>
-                </div>
 
                 <div class="mt-5 text-sm text-slate-500">Mô tả</div>
                 <div class="mt-1 text-sm text-slate-700 whitespace-pre-line"><?php echo htmlspecialchars($desc, ENT_QUOTES, 'UTF-8'); ?></div>
@@ -119,7 +105,6 @@ layout_start('pois', 'Chi tiết POI | POI Admin');
       const lat = <?php echo json_encode($lat); ?>;
       const lng = <?php echo json_encode($lng); ?>;
       const name = <?php echo json_encode($name, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-      const category = <?php echo json_encode($categoryLabel, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
       const map = L.map('detailMap');
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -130,13 +115,20 @@ layout_start('pois', 'Chi tiết POI | POI Admin');
       const ll = [Number(lat), Number(lng)];
       map.setView(ll, 16);
 
+            const geofenceOptions = buildGeofenceCircleOptions();
+            L.circle(ll, geofenceOptions).addTo(map);
       const marker = L.marker(ll).addTo(map);
       const safeName = (name ?? '').toString();
-      const safeCat = (category ?? '').toString();
+
+            marker.bindTooltip(escapeHtml(safeName), {
+                direction: 'top',
+                offset: [0, -8],
+                opacity: 0.95,
+                sticky: true
+            });
 
       marker.bindPopup(
-        `<div style="font-weight:600">${escapeHtml(safeName)}</div>` +
-        (safeCat ? `<div style="font-size:12px;color:#64748b">${escapeHtml(safeCat)}</div>` : '')
+                `<div style="font-weight:600">${escapeHtml(safeName)}</div>`
       );
       marker.openPopup();
 
@@ -148,6 +140,38 @@ layout_start('pois', 'Chi tiết POI | POI Admin');
           .replaceAll('"', '&quot;')
           .replaceAll("'", '&#039;');
       }
+
+            function buildGeofenceCircleOptions() {
+                const stroke = getColorFromTailwindClass('text-blue-600');
+                const fill = getColorFromTailwindClass('text-blue-500');
+                const opts = {
+                    radius: 50,
+                    weight: 2,
+                    opacity: 0.9,
+                    fillOpacity: 0.12,
+                    interactive: false
+                };
+
+                if (stroke) opts.color = stroke;
+                if (fill) opts.fillColor = fill;
+                return opts;
+            }
+
+            function getColorFromTailwindClass(className) {
+                try {
+                    const el = document.createElement('span');
+                    el.className = className;
+                    el.style.position = 'absolute';
+                    el.style.left = '-9999px';
+                    el.style.top = '-9999px';
+                    document.body.appendChild(el);
+                    const color = getComputedStyle(el).color;
+                    el.remove();
+                    return (typeof color === 'string' && color.trim() !== '') ? color : null;
+                } catch {
+                    return null;
+                }
+            }
     })();
     </script>
 <?php endif; ?>

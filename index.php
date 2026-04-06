@@ -6,30 +6,18 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/layout.php';
 
 $poiTotal = 0;
-$tourTotal = 0;
 $visits = 1284;
 $growth = '+12%';
 
 $recentPois = [];
-$recentTours = [];
 
 try {
 	$poiTotal = (int)$conn->query('SELECT COUNT(*) FROM pois')->fetchColumn();
-	$recentPoisStmt = $conn->query('SELECT p.id, p.name, p.categoryId, c.name AS categoryName FROM pois p LEFT JOIN categories c ON c.id = p.categoryId ORDER BY p.id DESC LIMIT 2');
+	$recentPoisStmt = $conn->query('SELECT id, name FROM pois ORDER BY id DESC LIMIT 2');
 	$recentPois = $recentPoisStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
 	$poiTotal = 0;
 	$recentPois = [];
-}
-
-try {
-	$conn->query('SELECT 1 FROM tours LIMIT 1');
-	$tourTotal = (int)$conn->query('SELECT COUNT(*) FROM tours')->fetchColumn();
-	$recentToursStmt = $conn->query('SELECT id, name FROM tours ORDER BY id DESC LIMIT 1');
-	$recentTours = $recentToursStmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
-	$tourTotal = 0;
-	$recentTours = [];
 }
 
 layout_start('dashboard', 'Dashboard | POI Admin');
@@ -40,7 +28,7 @@ layout_start('dashboard', 'Dashboard | POI Admin');
 	<p class="text-sm text-slate-500 mt-1">Chào mừng quay trở lại, <?php echo htmlspecialchars((string)($_SESSION['username'] ?? 'Admin'), ENT_QUOTES, 'UTF-8'); ?>.</p>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-6">
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
 	<div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4">
 		<div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
 			<i class="bi bi-geo-alt"></i>
@@ -48,16 +36,6 @@ layout_start('dashboard', 'Dashboard | POI Admin');
 		<div>
 			<div class="text-xs text-slate-500">Tổng số POIs</div>
 			<div class="text-2xl font-semibold mt-0.5"><?php echo $poiTotal; ?></div>
-		</div>
-	</div>
-
-	<div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4">
-		<div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center">
-			<i class="bi bi-diagram-3"></i>
-		</div>
-		<div>
-			<div class="text-xs text-slate-500">Tổng số Tours</div>
-			<div class="text-2xl font-semibold mt-0.5"><?php echo $tourTotal; ?></div>
 		</div>
 	</div>
 
@@ -92,9 +70,6 @@ layout_start('dashboard', 'Dashboard | POI Admin');
 				<div class="space-y-3">
 					<?php foreach ($recentPois as $poi) :
 						$name = (string)($poi['name'] ?? '');
-						$categoryId = (string)($poi['categoryId'] ?? '');
-						$categoryName = (string)($poi['categoryName'] ?? '');
-						$categoryLabel = $categoryName !== '' ? $categoryName : $categoryId;
 					?>
 						<div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
 							<div class="flex items-center gap-3 min-w-0">
@@ -106,38 +81,9 @@ layout_start('dashboard', 'Dashboard | POI Admin');
 									<div class="text-xs text-slate-500 truncate">POI mới</div>
 								</div>
 							</div>
-							<?php if ($categoryLabel !== '') : ?>
-								<span class="ml-4 shrink-0 inline-flex items-center rounded-full bg-white border border-slate-200 text-slate-600 px-2.5 py-1 text-[10px] font-bold uppercase">
-									<?php echo htmlspecialchars($categoryLabel, ENT_QUOTES, 'UTF-8'); ?>
-								</span>
-							<?php endif; ?>
 						</div>
 					<?php endforeach; ?>
 				</div>
-			<?php endif; ?>
-		</div>
-	</section>
-
-	<section class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-		<div class="px-6 py-5 border-b border-slate-100 font-semibold">Tours mới tạo</div>
-		<div class="px-6 py-6">
-			<?php if (empty($recentTours)) : ?>
-				<div class="text-sm text-slate-500 text-center">Chưa có Tour nào.</div>
-			<?php else : ?>
-				<?php foreach ($recentTours as $tour) : ?>
-					<div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-						<div class="flex items-center gap-3 min-w-0">
-							<div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-								<i class="bi bi-diagram-3"></i>
-							</div>
-							<div class="min-w-0">
-								<div class="font-semibold truncate"><?php echo htmlspecialchars((string)($tour['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
-								<div class="text-xs text-slate-500 truncate">1 POIs • Đây là tour ngắn vui</div>
-							</div>
-						</div>
-						<span class="ml-4 shrink-0 inline-flex items-center rounded-full bg-white border border-slate-200 text-slate-600 px-2.5 py-1 text-[10px] font-bold">Mới</span>
-					</div>
-				<?php endforeach; ?>
 			<?php endif; ?>
 		</div>
 	</section>

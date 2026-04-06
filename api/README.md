@@ -18,7 +18,7 @@ If `API_KEYS` is left empty, the API will accept requests without auth (not reco
 
 ## Endpoints
 - `GET /health` (no auth)
-- `GET /pois` (optional query: `q`, `categoryId`)
+- `GET /pois` (optional query: `q`)
 - `GET /pois/{id}`
 - `POST /pois`
 - `PUT /pois/{id}`

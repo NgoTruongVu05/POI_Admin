@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
 
 $pois = [];
 try {
-  $stmt = $conn->query('SELECT p.id, p.name, p.description, p.lat, p.lng, p.categoryId, c.name AS categoryName, c.color AS categoryColor FROM pois p LEFT JOIN categories c ON c.id = p.categoryId ORDER BY p.id DESC');
+  $stmt = $conn->query('SELECT id, name, description, lat, lng FROM pois ORDER BY id DESC');
     $pois = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $pois = [];
@@ -98,10 +98,7 @@ layout_start('pois', 'Quản lý POIs | POI Admin');
                         $desc = (string)($poi['description'] ?? '');
                         $lat = (float)($poi['lat'] ?? 0);
                         $lng = (float)($poi['lng'] ?? 0);
-                      $categoryId = (string)($poi['categoryId'] ?? '');
-                      $categoryName = (string)($poi['categoryName'] ?? '');
-                      $categoryLabel = $categoryName !== '' ? $categoryName : $categoryId;
-                      $searchTextRaw = $name . ' ' . $desc . ' ' . $categoryId . ' ' . $categoryName;
+                      $searchTextRaw = $name . ' ' . $desc;
                         $searchText = function_exists('mb_strtolower')
                             ? mb_strtolower($searchTextRaw, 'UTF-8')
                             : strtolower($searchTextRaw);
@@ -120,13 +117,6 @@ layout_start('pois', 'Quản lý POIs | POI Admin');
                           <div class="min-w-0 flex-1">
                             <div class="font-semibold truncate"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></div>
                             <div class="text-xs text-slate-500 truncate"><?php echo htmlspecialchars($desc, ENT_QUOTES, 'UTF-8'); ?></div>
-                            <?php if (!empty($categoryLabel)) : ?>
-                              <div class="mt-2">
-                                <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide">
-                                  <?php echo htmlspecialchars($categoryLabel, ENT_QUOTES, 'UTF-8'); ?>
-                                </span>
-                              </div>
-                            <?php endif; ?>
                           </div>
                         </button>
 
@@ -200,9 +190,6 @@ layout_start('pois', 'Quản lý POIs | POI Admin');
         <div class="text-sm text-slate-500">Tên POI</div>
         <div class="mt-1 font-semibold" id="poiDetailName"></div>
 
-        <div class="mt-5 text-sm text-slate-500">Thể loại</div>
-        <div class="mt-1" id="poiDetailCategory"></div>
-
         <div class="mt-5 text-sm text-slate-500">Mô tả</div>
         <div class="mt-1 text-sm text-slate-700 whitespace-pre-wrap break-words" id="poiDetailDesc"></div>
       </div>
@@ -244,6 +231,45 @@ layout_start('pois', 'Quản lý POIs | POI Admin');
 
   const markersById = new Map();
   const bounds = [];
+  const GEOFENCE_RADIUS_M = 50;
+
+  const geofenceCircleOptions = buildGeofenceCircleOptions();
+
+  function buildGeofenceCircleOptions() {
+    const stroke = getColorFromTailwindClass('text-blue-600');
+    const fill = getColorFromTailwindClass('text-blue-500');
+    const opts = {
+      radius: GEOFENCE_RADIUS_M,
+      weight: 2,
+      opacity: 0.9,
+      fillOpacity: 0.12,
+      interactive: false
+    };
+
+    if (stroke) opts.color = stroke;
+    if (fill) opts.fillColor = fill;
+    return opts;
+  }
+
+  function getColorFromTailwindClass(className) {
+    try {
+      const el = document.createElement('span');
+      el.className = className;
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      el.style.top = '-9999px';
+      document.body.appendChild(el);
+      const color = getComputedStyle(el).color;
+      el.remove();
+      return (typeof color === 'string' && color.trim() !== '') ? color : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function addGeofenceCircle(mapInstance, ll) {
+    return L.circle(ll, geofenceCircleOptions).addTo(mapInstance);
+  }
 
   for (const poi of pois) {
     const id = (poi.id ?? '').toString();
@@ -251,15 +277,22 @@ layout_start('pois', 'Quản lý POIs | POI Admin');
     const lng = Number(poi.lng);
     if (!id || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
+    addGeofenceCircle(map, [lat, lng]);
     const marker = L.marker([lat, lng]).addTo(map);
     const safeName = (poi.name ?? '').toString();
-    const safeCategoryName = (poi.categoryName ?? '').toString();
-    const safeCategoryId = (poi.categoryId ?? '').toString();
-    const safeCategoryLabel = safeCategoryName || safeCategoryId;
+    marker.bindTooltip(escapeHtml(safeName), {
+      direction: 'top',
+      offset: [0, -8],
+      opacity: 0.95,
+      sticky: true
+    });
     marker.bindPopup(
-      `<div style="font-weight:600">${escapeHtml(safeName)}</div>` +
-      (safeCategoryLabel ? `<div style="font-size:12px;color:#64748b">${escapeHtml(safeCategoryLabel)}</div>` : '')
+      `<div style="font-weight:600">${escapeHtml(safeName)}</div>`
     );
+
+    marker.on('click', () => {
+      openDetailModal(poi);
+    });
 
     markersById.set(id, marker);
     bounds.push([lat, lng]);
@@ -371,12 +404,12 @@ layout_start('pois', 'Quản lý POIs | POI Admin');
   const detailCloseX = document.getElementById('poiDetailCloseX');
   const detailIdEl = document.getElementById('poiDetailId');
   const detailNameEl = document.getElementById('poiDetailName');
-  const detailCategoryEl = document.getElementById('poiDetailCategory');
   const detailDescEl = document.getElementById('poiDetailDesc');
   const viewButtons = Array.from(document.querySelectorAll('[data-action="view-poi"]'));
 
   let detailMap = null;
   let detailMarker = null;
+  let detailCircle = null;
 
   function openDetailModal(poi) {
     if (!detailModal) return;
@@ -384,21 +417,12 @@ layout_start('pois', 'Quản lý POIs | POI Admin');
     const id = (poi?.id ?? '').toString();
     const name = (poi?.name ?? '').toString();
     const desc = (poi?.description ?? '').toString();
-    const categoryName = (poi?.categoryName ?? '').toString();
-    const categoryId = (poi?.categoryId ?? '').toString();
-    const categoryLabel = categoryName || categoryId;
     const lat = Number(poi?.lat);
     const lng = Number(poi?.lng);
 
     if (detailIdEl) detailIdEl.textContent = id ? `ID: ${id}` : '';
     if (detailNameEl) detailNameEl.textContent = name;
     if (detailDescEl) detailDescEl.textContent = desc;
-
-    if (detailCategoryEl) {
-      detailCategoryEl.innerHTML = categoryLabel
-        ? `<span class="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2.5 py-1 text-xs font-semibold">${escapeHtml(categoryLabel)}</span>`
-        : `<span class="text-slate-400 text-sm">(Chưa có)</span>`;
-    }
 
     detailModal.classList.remove('hidden');
     detailModal.classList.add('flex');
@@ -415,16 +439,32 @@ layout_start('pois', 'Quản lý POIs | POI Admin');
         }).addTo(detailMap);
       }
 
+      if (!detailCircle) {
+        detailCircle = addGeofenceCircle(detailMap, ll);
+      } else {
+        detailCircle.setLatLng(ll);
+      }
+
       if (!detailMarker) {
         detailMarker = L.marker(ll).addTo(detailMap);
       } else {
         detailMarker.setLatLng(ll);
       }
 
+      if (detailMarker.getTooltip && detailMarker.getTooltip()) {
+        detailMarker.setTooltipContent(escapeHtml(name));
+      } else {
+        detailMarker.bindTooltip(escapeHtml(name), {
+          direction: 'top',
+          offset: [0, -8],
+          opacity: 0.95,
+          sticky: true
+        });
+      }
+
       detailMap.setView(ll, 16);
       detailMarker.bindPopup(
-        `<div style="font-weight:600">${escapeHtml(name)}</div>` +
-        (categoryLabel ? `<div style="font-size:12px;color:#64748b">${escapeHtml(categoryLabel)}</div>` : '')
+        `<div style="font-weight:600">${escapeHtml(name)}</div>`
       );
       detailMarker.openPopup();
 

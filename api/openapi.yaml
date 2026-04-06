@@ -50,18 +50,6 @@ components:
         description:
           type: string
           nullable: true
-        categoryId:
-          type: string
-          nullable: true
-          example: main
-        categoryName:
-          type: string
-          nullable: true
-          example: Điểm tham quan
-        categoryColor:
-          type: string
-          nullable: true
-          example: blue
         lat:
           type: number
           format: double
@@ -93,9 +81,6 @@ paths:
           name: q
           schema: { type: string }
           description: Search by id/name/description
-        - in: query
-          name: categoryId
-          schema: { type: string }
       responses:
         '200':
           description: OK
@@ -123,7 +108,6 @@ paths:
                 id: { type: string }
                 name: { type: string }
                 description: { type: string, nullable: true }
-                categoryId: { type: string, nullable: true }
                 lat: { type: number, format: double }
                 lng: { type: number, format: double }
       responses:
@@ -183,7 +167,6 @@ paths:
               properties:
                 name: { type: string }
                 description: { type: string, nullable: true }
-                categoryId: { type: string, nullable: true }
                 lat: { type: number, format: double }
                 lng: { type: number, format: double }
       responses:
